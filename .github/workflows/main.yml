@@ -1,0 +1,51 @@
+name: Build Web2App iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Web2App Project Structure
+        run: |
+          mkdir -p WebApp/WebApp
+          cat << 'EOF' > WebApp/WebApp/ContentView.swift
+          import SwiftUI
+          import WebKit
+
+          struct WebView: UIViewRepresentable {
+              let url: URL
+              func makeUIView(context: Context) -> WKWebView {
+                  let webView = WKWebView()
+                  webView.load(URLRequest(url: url))
+                  return webView
+              }
+              func updateUIView(_ uiView: WKWebView, context: Context) {}
+          }
+
+          struct ContentView: View {
+              var body: some View {
+                  WebView(url: URL(string: "https://atominolab.base44.app")!)
+                      .edgesIgnoringSafeArea(.all)
+              }
+          }
+          EOF
+
+      - name: Build Payload and IPA
+        run: |
+          mkdir -p Payload/MyApp.app
+          cd Payload/MyApp.app
+          touch Info.plist
+          cd ../..
+          zip -r WebApp.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-App-IPA
+          path: WebApp.ipa
